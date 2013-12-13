@@ -3,7 +3,7 @@
   <cfproperty name="tableMetaData">
   <cfproperty name="databaseType">
   <cfproperty name="dataTypeLookup">
-  <cfproperty name="autoPKGen" default="true" type="boolean">
+  <cfproperty name="autoPKGen" default="false" type="boolean">
   <!---    
     Please Note:
     
