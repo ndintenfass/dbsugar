@@ -41,7 +41,7 @@
     }
 
     function deleteRow( required table, required value, field=getTablePrimaryKey(arguments.table) ){
-      delete(table=arguments.table,where={"#arguments.field#"=arguments.value});
+      return delete(table=arguments.table,where={"#arguments.field#"=arguments.value});
     }
 
     function save( required table, generatePK=getAutoPKGen() ){
@@ -97,7 +97,7 @@
     }
 
     function getTableColumnCount( required table ){
-      getTableMetaData()[arguments.table].columnCount;
+      return getTableMetaData()[arguments.table].columnCount;
     }
 
     function getColumnCFSQLType( required table, required column ){
