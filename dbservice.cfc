@@ -93,7 +93,7 @@
     }
 
     function getTablePrimaryKey( required table ){
-      getTableMetaData()[arguments.table].primaryKey;
+      return getTableMetaData()[arguments.table].primaryKey;
     }
 
     function getTableColumnCount( required table ){
