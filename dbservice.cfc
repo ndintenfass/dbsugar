@@ -176,10 +176,11 @@
         else{
           local.thisClause.isList = local.thisClause.operator EQ "in" or local.thisClause.operator EQ "not in";
         }
-        if(NOT structKeyExists(validOperators,local.thisClause.operator)) throw("Invalid operator #local.thisClause.operator#"); 
+        if(NOT structKeyExists(validOperators,local.thisClause.operator))
+          throw("Invalid operator #local.thisClause.operator#"); 
         local.thisClause.value = arguments.where[key];
         local.thisClause.cfSQLType = getColumnCFSQLType(arguments.table,local.thisClause.column);
-        local.thisClause.null = !len(trim(local.thisClause.value)) AND local.thisClause.cfSQLType DOES NOT CONTAIN "char" ? true : false;
+        local.thisClause.null = (!len(trim(local.thisClause.value)) AND (local.thisClause.cfSQLType DOES NOT CONTAIN "char" OR local.thisClause.operator CONTAINS "is")) ? true : false;
         processed[key] = local.thisClause;
       }
       return processed;
@@ -271,28 +272,20 @@
       }
       throw("Unknown database type while creating a mapping for data types to CF_SQL type: #getDatabaseType()#");
     }
-
   </cfscript>
-  
-
-  
-
-
 
   <cffunction name="getDBType" output="false" access="public">
     <cfdbinfo datasource="#getDSN()#" type="version" name="local.info">
     <cfscript>
-      if(local.info.driver_name Contains "SQLServer" || local.info.driver_name Contains "Microsoft SQL Server" || local.info.driver_name Contains "MS SQL Server" || local.info.database_productname Contains "Microsoft SQL Server")
-        return "SQLServer";
       if(local.info.database_productname Contains "MySQL")
         return "MySQL";
+      if(local.info.driver_name Contains "SQLServer" || local.info.driver_name Contains "Microsoft SQL Server" || local.info.driver_name Contains "MS SQL Server" || local.info.database_productname Contains "Microsoft SQL Server")
+        return "SQLServer";
       if(local.info.database_productname Contains "Apache Derby")
         return "Derby";
       throw("Unknown database type is being used: #local.info.database_productname# (#local.info.driver_name#)");
     </cfscript>
   </cffunction>
-
-
 
   <cffunction name="select" access="public" output="false" >
     <cfargument name="table" required="true"  />
@@ -309,14 +302,14 @@
               </cfif>
               #arguments.distinct ? "DISTINCT " : ""# #arguments.columns#
       FROM    #arguments.table#
-      <cfif structKeyExists(arguments,"where")>
-        <cfset var whereClauses = processWhereColumns(arguments.where,arguments.table)>
+      <cfif structKeyExists( arguments, "where" )>
+        <cfset var whereClauses = processWhereColumns( arguments.where, arguments.table )>
         <cfset var thisClause = "">
         WHERE 1=1
         <cfloop collection="#whereClauses#" item="key">
           <cfset thisClause = whereClauses[key]>
           <!--- if we ever need logical "OR" perhaps consider making an optional component that acts as an advanced filter with things like addCritera(column,value,operator,boolean) --->
-          AND           
+          AND          
           #thisClause.column# #thisClause.operator# #thisClause.isList ? " (" : ""#
           <cfif NOT thisClause.isJoin>
             <cfqueryparam value="#thisClause.value#" null="#thisClause.null#" CFSQLType="#thisClause.CFSQLType#" list="#thisClause.isList#">
@@ -350,15 +343,11 @@
       local.incomingPKValue = local.hasPKField AND structKeyExists(local.columnData,local.pkField) AND len(trim(local.columnData[local.pkField].value));
     </cfscript>
     <cfquery datasource = "#getDSN()#" result="local.queryResult" name="local.insertQuery">
-      insert into #arguments.table#
+      INSERT INTO #arguments.table#
       (
         #structKeyList(local.columnData)#
       )
-      <!--- We go ahead and assume that we're only using UNIQUEIDENTIFIERS with a default of NEWSEQUENTIALID() for tables with primary keys--->
-      <cfif local.hasPKField AND NOT local.incomingPKValue AND getDatabaseType() EQ "SQLServer">
-        OUTPUT INSERTED.#local.pkField#
-      </cfif>
-      values
+      VALUES
       (
         <cfloop collection="#local.columnData#" item="local.thiscol">
           <cfset local.thisColData = local.columnData[local.thiscol]>
@@ -367,8 +356,8 @@
         </cfloop>
       )
     </cfquery>
-    <!--- if there is a primary key field we either return the one being passed in --->
-    <cfreturn  local.incomingPKValue ? local.columnData[local.pkField].value : (local.hasPKField AND getDatabaseType() EQ "SQLServer" ? insertQuery[local.pkField][1] : "")>
+    <!--- if there is a primary key field we either return the one being passed in or the generatedKey if it exists or fall back to an empty string --->
+    <cfreturn  local.incomingPKValue ? local.columnData[local.pkField].value : (structKeyExists(local.queryResult,"generatedKey") ? local.queryResult.generatedKey : "")>
   </cffunction>
   
   <cffunction name="update" access="public" output="false">
@@ -421,7 +410,7 @@
   <cffunction name="delete" access="public" output="false" hint="General purpose delete, with a table name and a struct containing the WHERE clause">
     <cfargument name="table" required="true" hint="Name of the table" />
     <cfargument name="where" required="false" hint="a struct of column names as keys with filter values, use ' in' after the column name for a multi-filter using IN in the SQL">
-    <cfquery datasource="#getDSN()#">
+    <cfquery datasource="#getDSN()#" result="local.queryResult">
       DELETE
       FROM    #arguments.table#
       <cfif structKeyExists(arguments,"where")>
@@ -442,6 +431,7 @@
         </cfloop>
       </cfif>
     </cfquery>
+    <cfreturn>
   </cffunction>
 
   <cffunction name="rawsql" access="public" output="false" hint="USE VERY CAUTIOUSLY">
