@@ -312,7 +312,12 @@
           AND          
           #thisClause.column# #thisClause.operator# #thisClause.isList ? " (" : ""#
           <cfif NOT thisClause.isJoin>
-            <cfqueryparam value="#thisClause.value#" null="#thisClause.null#" CFSQLType="#thisClause.CFSQLType#" list="#thisClause.isList#">
+            <!--- apache derby doesn't like NULL values in CFQUERYPARAM, so we make a special exception --->
+            <cfif thisClause.null AND getDBType() EQ "Derby">
+              NULL
+            <cfelse>
+              <cfqueryparam value="#thisClause.value#" null="#thisClause.null#" CFSQLType="#thisClause.CFSQLType#" list="#thisClause.isList#">
+            </cfif>
           <cfelse>
             #thisClause.value#    
           </cfif>
