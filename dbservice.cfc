@@ -401,7 +401,12 @@
             AND           
             #thisClause.column# #thisClause.operator# #thisClause.isList ? " (" : ""#                                                               
             <cfif NOT thisClause.isJoin>
-              <cfqueryparam value="#thisClause.value#" CFSQLType="#thisClause.CFSQLType#" list="#thisClause.isList#">
+              <!--- apache derby doesn't like NULL values in CFQUERYPARAM, so we make a special exception --->
+              <cfif thisClause.null AND getDBType() EQ "Derby">
+                NULL
+              <cfelse>
+                <cfqueryparam value="#thisClause.value#" null="#thisClause.null#" CFSQLType="#thisClause.CFSQLType#" list="#thisClause.isList#">
+              </cfif>
             <cfelse>
               #thisClause.value#    
             </cfif>
@@ -418,17 +423,22 @@
     <cfquery datasource="#getDSN()#" result="local.queryResult">
       DELETE
       FROM    #arguments.table#
-      <cfif structKeyExists(arguments,"where")>
-        <cfset var whereClauses = processWhereColumns(arguments.where,arguments.table)>
+      <cfif structKeyExists( arguments, "where" )>
+        <cfset var whereClauses = processWhereColumns( arguments.where, arguments.table )>
         <cfset var thisClause = "">
         WHERE 1=1
         <cfloop collection="#whereClauses#" item="key">
           <cfset thisClause = whereClauses[key]>
           <!--- if we ever need logical "OR" perhaps consider making an optional component that acts as an advanced filter with things like addCritera(column,value,operator,boolean) --->
-          AND           
-          #thisClause.column# #thisClause.operator# #thisClause.isList ? " (" : ""#                                                               
+          AND          
+          #thisClause.column# #thisClause.operator# #thisClause.isList ? " (" : ""#
           <cfif NOT thisClause.isJoin>
-            <cfqueryparam value="#thisClause.value#" CFSQLType="#thisClause.CFSQLType#" list="#thisClause.isList#">
+            <!--- apache derby doesn't like NULL values in CFQUERYPARAM, so we make a special exception --->
+            <cfif thisClause.null AND getDBType() EQ "Derby">
+              NULL
+            <cfelse>
+              <cfqueryparam value="#thisClause.value#" null="#thisClause.null#" CFSQLType="#thisClause.CFSQLType#" list="#thisClause.isList#">
+            </cfif>
           <cfelse>
             #thisClause.value#    
           </cfif>
@@ -438,6 +448,16 @@
     </cfquery>
     <cfreturn>
   </cffunction>
+
+
+
+
+
+
+
+
+
+
 
   <cffunction name="rawsql" access="public" output="false" hint="USE VERY CAUTIOUSLY">
     <cfargument name="sql" required="true">
