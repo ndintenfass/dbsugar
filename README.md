@@ -1,7 +1,7 @@
 dbsugar
 =======
 
-Syntactic sugar for SQL queries in ColdFusion scripting, simpler and more elegant than the native script-based query API.
+Syntactic sugar for SQL queries in ColdFusion scripting, simpler and more elegant than the native script-based query API. It also is aware of the structure of your database, so it can use CFQUERYPARAM under the sheets.
 
 Run the demo.cfm page to see some examples.
 
