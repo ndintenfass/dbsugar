@@ -78,11 +78,11 @@
     }
 
     function tableExists( required table ){
-      structKeyExists( getTableMetaData(), arguments.table );
+      return structKeyExists( getTableMetaData(), arguments.table );
     }
 
     function columnExists( required table, required column ){
-      structKeyExists( getTableMetaData()[arguments.table].columns, arguments.column )
+      return structKeyExists( getTableMetaData()[arguments.table].columns, arguments.column );
     }
 
     function dataTypetoCFSQLType( required type ){
@@ -188,36 +188,6 @@
     private function makeSQLToCFDataTypeLookup(){
 
       switch(getDatabaseType()){
-        case "SQLServer":
-          return {int = "CF_SQL_INTEGER",
-                  bigint = "CF_SQL_BIGINT",
-                  smallint = "CF_SQL_SMALLINT",
-                  tinyint = "CF_SQL_TINYINT",
-                  numeric = "CF_SQL_NUMERIC",
-                  money = "CF_SQL_MONEY4",
-                  smallmoney = "CF_SQL_MONEY",
-                  bit = "CF_SQL_BIT",
-                  decimal = "CF_SQL_DECIMAL",
-                  float = "CF_SQL_FLOAT",
-                  real = "CF_SQL_REAL",
-                  datetime = "CF_SQL_TIMESTAMP",
-                  smalldatetime = "CF_SQL_DATE",
-                  char = "CF_SQL_CHAR",
-                  nchar = "CF_SQL_CHAR",
-                  varchar = "CF_SQL_VARCHAR",
-                  nvarchar = "CF_SQL_VARCHAR",
-                  "nvarchar(max)" = "CF_SQL_LONGVARCHAR",
-                  text = "CF_SQL_LONGVARCHAR",
-                  ntext = "CF_SQL_LONGVARCHAR",
-                  uniqueidentifier = "CF_SQL_IDSTAMP",
-                  identity = "CF_SQL_INTEGER",
-                  integer = "CF_SQL_INTEGER",
-                  memo = "CF_SQL_LONGVARCHAR",
-                  currency = "CF_SQL_MONEY",
-                  timestamp = "CF_SQL_TIMESTAMP",
-                  boolean = "CF_SQL_BIT",
-                  double = "CF_SQL_FLOAT"
-                };
         case "MySQL":
           return {bigint="cf_sql_bigint",
                   binary="cf_sql_binary",
@@ -232,7 +202,7 @@
                   money="cf_sql_money",
                   nchar="cf_sql_char",
                   ntext="cf_sql_longvarchar",
-                  numeric="cf_sql_varchar",
+                  numeric="cf_sql_decimal",
                   nvarchar="cf_sql_varchar",
                   longtext="cf_sql_longvarchar",
                   real="cf_sql_real",
@@ -246,6 +216,58 @@
                   varbinary="cf_sql_varbinary",
                   varchar="cf_sql_varchar"
                 };
+          case "SQLServer":
+          return {int = "cf_sql_integer",
+                  bigint = "cf_sql_bigint",
+                  smallint = "cf_sql_smallint",
+                  tinyint = "cf_sql_tinyint",
+                  numeric = "cf_sql_numeric",
+                  money = "cf_sql_money4",
+                  smallmoney = "cf_sql_money",
+                  bit = "cf_sql_bit",
+                  decimal = "cf_sql_decimal",
+                  float = "cf_sql_float",
+                  real = "cf_sql_real",
+                  datetime = "cf_sql_timestamp",
+                  smalldatetime = "cf_sql_date",
+                  char = "cf_sql_char",
+                  nchar = "cf_sql_char",
+                  varchar = "cf_sql_varchar",
+                  nvarchar = "cf_sql_varchar",
+                  "nvarchar(max)" = "cf_sql_longvarchar",
+                  text = "cf_sql_longvarchar",
+                  ntext = "cf_sql_longvarchar",
+                  uniqueidentifier = "cf_sql_idstamp",
+                  identity = "cf_sql_integer",
+                  integer = "cf_sql_integer",
+                  memo = "cf_sql_longvarchar",
+                  currency = "cf_sql_money",
+                  timestamp = "cf_sql_timestamp",
+                  boolean = "cf_sql_bit",
+                  double = "cf_sql_float"
+                };              
+        case "Derby":
+          return {bigint="cf_sql_bigint",
+                  blob="cf_sql_binary",
+                  char="cf_sql_char",
+                  "CHAR FOR BIT DATA"="cf_sql_char",
+                  clob="cf_sql_varbinary",
+                  date="cf_sql_date",
+                  decimal="cf_sql_decimal",
+                  double="cf_sql_numeric",
+                  "DOUBLE PRECISION"="cf_sql_numeric",
+                  float="cf_sql_float",
+                  integer="cf_sql_integer",
+                  "LONG VARCHAR"="cf_sql_longvarchar",
+                  "LONG VARCHAR FOR BIT DATA"="cf_sql_longvarchar",
+                  numeric="cf_sql_decimal",
+                  real="cf_sql_real",
+                  smallint="cf_sql_smallint",
+                  time="cf_sql_time",
+                  timestamp="cf_sql_timestamp",
+                  varchar="cf_sql_varchar",
+                  "VARCHAR FOR BIT DATA"="cf_sql_varchar"
+                };        
       }
       throw("Unknown database type while creating a mapping for data types to CF_SQL type: #getDatabaseType()#");
     }
@@ -257,16 +279,20 @@
 
 
 
-  <cffunction name="getDBType" output="false" access="private">
+  <cffunction name="getDBType" output="false" access="public">
     <cfdbinfo datasource="#getDSN()#" type="version" name="local.info">
     <cfscript>
       if(local.info.driver_name Contains "SQLServer" || local.info.driver_name Contains "Microsoft SQL Server" || local.info.driver_name Contains "MS SQL Server" || local.info.database_productname Contains "Microsoft SQL Server")
         return "SQLServer";
       if(local.info.database_productname Contains "MySQL")
         return "MySQL";
+      if(local.info.database_productname Contains "Apache Derby")
+        return "Derby";
       throw("Unknown database type is being used: #local.info.database_productname# (#local.info.driver_name#)");
     </cfscript>
   </cffunction>
+
+
 
   <cffunction name="select" access="public" output="false" >
     <cfargument name="table" required="true"  />
