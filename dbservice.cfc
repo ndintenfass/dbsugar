@@ -32,12 +32,17 @@
     }
 
     function selectByValue( required table, required field, required value, columns="*", orderby ){
-      var arguments.where = { "#arguments.field#" = arguments.value };
+      arguments.where = { "#arguments.field#" = arguments.value };
       return select( argumentCollection = arguments );
     }
 
     function selectRow( required table, required value, field=getTablePrimaryKey( arguments.table ), columns="*" ){
       return selectByValue(argumentCollection=arguments);
+    }
+
+    function selectCount( required table, where ){
+      arguments.count = true;
+      return select(argumentCollection=arguments).countValue;
     }
 
     function deleteRow( required table, required value, field=getTablePrimaryKey(arguments.table) ){
@@ -294,13 +299,17 @@
     <cfargument name="where" required="false" hint="a struct of column names as keys with filter values, use ' in' after the column name for a multi-filter using IN in the SQL">
     <cfargument name="distinct" required="false" default="false" />
     <cfargument name="limit" required="false">
+    <cfargument name="count" default="false" required="false">
+    <cfargument name="countColumn" default="countValue" required="false">
     <cfset var key = "">
     <cfquery name="local.result" datasource="#getDSN()#">
       SELECT  
               <cfif structKeyExists(arguments,"limit") and getDatabaseType() EQ "SQLServer">
                 TOP(#arguments.top#)
               </cfif>
+              #arguments.count ? "COUNT(" : ""#
               #arguments.distinct ? "DISTINCT " : ""# #arguments.columns#
+              #arguments.count ? ") as #arguments.countColumn#" : ""#
       FROM    #arguments.table#
       <cfif structKeyExists( arguments, "where" )>
         <cfset var whereClauses = processWhereColumns( arguments.where, arguments.table )>
@@ -330,8 +339,6 @@
       <cfif structKeyExists(arguments,"limit") AND getDatabaseType() EQ "MySQL">
         LIMIT #arguments.limit#
       </cfif>
-
-      
     </cfquery>
     <cfreturn local.result />
   </cffunction>
@@ -448,16 +455,6 @@
     </cfquery>
     <cfreturn>
   </cffunction>
-
-
-
-
-
-
-
-
-
-
 
   <cffunction name="rawsql" access="public" output="false" hint="USE VERY CAUTIOUSLY">
     <cfargument name="sql" required="true">
