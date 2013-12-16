@@ -1,4 +1,4 @@
-component extends="mxunit.framework.TestCase" {
+component extends="dbsugarAbstractTest" {
   
   public void function setUp() {
     variables.dsn = "cfartgallery";
