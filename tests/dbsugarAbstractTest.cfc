@@ -5,7 +5,7 @@ component extends="mxunit.framework.TestCase" output="false" {
   
   function setUp() {
     variables.dsn = "cfartgallery";
-    variables.db = new dbsugar.dbservice(variables.dsn,false);
+    variables.db = new dbsugar.dbservice( variables.dsn );
   }
 
   private function rawQuery(sql){

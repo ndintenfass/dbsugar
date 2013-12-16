@@ -20,7 +20,7 @@
   --->
 
   <cfscript>
-    function init( required dsn, boolean autoPKGen=true ){
+    function init( required dsn, boolean autoPKGen=getAutoPKGen() ){
       setDSN( arguments.dsn );
       setAutoPKGen( arguments.autoPKGen );
       refresh();

@@ -9,7 +9,7 @@
   show("Insert a new artist","newid = db.insert(table='artists',firstName='Jizanthapus',lastName='Szekely');");
   show("Get the new artist","db.selectRow('artists',newid);");
   show("Delete the new artist","db.deleteRow('artists',newid);");
-  
+
 
 </cfscript>
 
