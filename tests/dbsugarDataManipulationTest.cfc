@@ -17,7 +17,23 @@ component extends="dbsugarAbstractTest" {
     assertTrue(artistExists(), "The artists inserted to test delete didn't work");
     db.deleteRow("artists",newid);
     assertFalse(artistExists(), "Failed to delete the inserted artist");
-    //cleanArtist();
+    cleanArtist();
+  }
+
+  function testUpdate() {
+    var artists = rawQuery("SELECT * FROM artists");
+    var originalEmail = artists.email[1];
+    var newemail = "newemail@mailinator.com";
+    var toUpdate = {
+      table = "artists",
+      artistid = artists.artistid[1],
+      email = newemail
+    };
+    db.update(argumentCollection=toUpdate);
+    var newArtist = rawQuery("SELECT email from artists where artistid = #artists.artistid[1]#");
+    assertEquals(newArtist.email,newEmail);
+    //clean up
+    rawQuery("UPDATE artists SET email = '#originalEmail#' WHERE artistid = #artists.artistid[1]#");
   }
 
 
@@ -33,6 +49,3 @@ component extends="dbsugarAbstractTest" {
     return rawQuery("select COUNT(*) as theCount from artists where firstName = '#getArtist().fname#' AND lastName = '#getArtist().lname#'").theCount GT 0;
   }
 }
-
-
-  //show("Delete the new artist","db.deleteRow('artists',newid);");
