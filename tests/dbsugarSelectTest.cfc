@@ -44,6 +44,12 @@ component extends="dbsugarAbstractTest" {
     assertEquals( data, actual, "Count of artists with a where clause was not the same");
   }
 
+  function testLike(){
+    var data = db.select( table="artists", where={"lastname LIKE"="T%"} );
+    var actual = rawQuery("SELECT * FROM artists WHERE lastname LIKE 'T%'");
+    assertEquals( data, actual, "Simple LIKE comparison failed");
+  }
+
 }
 
 

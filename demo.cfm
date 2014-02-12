@@ -5,6 +5,7 @@
   //writeDump(db.select( table='artists', where={'FAX is'=''} ));
   show("Get all the artists","db.select('artists');");
   show("Artists in California and New York","db.select( table='artists', where={'state in' = 'CA,NY'} );");
+  show("Get artists with last name starting with 'T'","db.select( table='artists', where={'lastname LIKE' = 'T%'} );");
   show("Filter artists where FAX is NULL","db.select( table='artists', where={'FAX is'=''} );");
   show("Insert a new artist","newid = db.insert(table='artists',firstName='Jizanthapus',lastName='Szekely');");
   show("Get the new artist","db.selectRow('artists',newid);");

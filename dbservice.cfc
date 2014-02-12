@@ -167,7 +167,8 @@
                             "not in"="",
                             "join"="",
                             "is"="",
-                            "is not"=""
+                            "is not"="",
+                            "like"=""
                           };
       for(var key in arguments.where){
         local.thisClause = {};
