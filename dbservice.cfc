@@ -168,7 +168,9 @@
                             "join"="",
                             "is"="",
                             "is not"="",
-                            "like"=""
+                            "like"="",
+                            "between"="",
+                            "not between"=""
                           };
       for(var key in arguments.where){
         local.thisClause = {};
@@ -183,8 +185,20 @@
           local.thisClause.isList = local.thisClause.operator EQ "in" or local.thisClause.operator EQ "not in";
         }
         if(NOT structKeyExists(validOperators,local.thisClause.operator))
-          throw("Invalid operator #local.thisClause.operator#"); 
-        local.thisClause.value = arguments.where[key];
+          throw("Invalid operator #local.thisClause.operator#");
+        
+        //between is a special case for how we handle the value
+        if(local.thisClause.operator CONTAINS "between"){
+          var betweenValues = listToArray(arguments.where[key]," ");
+          if(arrayLen(betweenValues) NEQ 3 OR betweenValues[2] NEQ "AND"){
+            throw("Invalid value for a BETWEEN operator. Form needs to be 'x AND y'");
+          }
+          local.thisClause.value = betweenValues[1];
+          local.thisClause.andvalue = betweenValues[3];
+        }  
+        else{
+          local.thisClause.value = arguments.where[key];
+        }      
         local.thisClause.cfSQLType = getColumnCFSQLType(arguments.table,local.thisClause.column);
         local.thisClause.null = (!len(trim(local.thisClause.value)) AND (local.thisClause.cfSQLType DOES NOT CONTAIN "char" OR local.thisClause.operator CONTAINS "is")) ? true : false;
         processed[key] = local.thisClause;
@@ -327,6 +341,9 @@
               NULL
             <cfelse>
               <cfqueryparam value="#thisClause.value#" null="#thisClause.null#" CFSQLType="#thisClause.CFSQLType#" list="#thisClause.isList#">
+              <cfif structKeyExists(thisClause,"andvalue")>
+                AND <cfqueryparam value="#thisClause.andvalue#" CFSQLType="#thisClause.CFSQLType#">
+              </cfif>
             </cfif>
           <cfelse>
             #thisClause.value#    
@@ -414,6 +431,9 @@
                 NULL
               <cfelse>
                 <cfqueryparam value="#thisClause.value#" null="#thisClause.null#" CFSQLType="#thisClause.CFSQLType#" list="#thisClause.isList#">
+                <cfif structKeyExists(thisClause,"andvalue")>
+                  AND <cfqueryparam value="#thisClause.andvalue#" CFSQLType="#thisClause.CFSQLType#">
+                </cfif>
               </cfif>
             <cfelse>
               #thisClause.value#    
@@ -446,6 +466,9 @@
               NULL
             <cfelse>
               <cfqueryparam value="#thisClause.value#" null="#thisClause.null#" CFSQLType="#thisClause.CFSQLType#" list="#thisClause.isList#">
+              <cfif structKeyExists(thisClause,"andvalue")>
+                AND <cfqueryparam value="#thisClause.andvalue#" CFSQLType="#thisClause.CFSQLType#">
+              </cfif>
             </cfif>
           <cfelse>
             #thisClause.value#    

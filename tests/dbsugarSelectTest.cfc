@@ -50,6 +50,17 @@ component extends="dbsugarAbstractTest" {
     assertEquals( data, actual, "Simple LIKE comparison failed");
   }
 
+  function testBetween(){
+    var data = db.select( table="orders", where={"orderstatusid BETWEEN"="3 AND 5"} );
+    var actual = rawQuery("SELECT * FROM orders WHERE orderstatusid BETWEEN 3 AND 5");
+    assertEquals( data, actual, "Simple LIKE comparison failed");
+  }
+  function testNotBetween(){
+    var data = db.select( table="orders", where={"orderstatusid NOT BETWEEN"="3 AND 5"} );
+    var actual = rawQuery("SELECT * FROM orders WHERE orderstatusid NOT BETWEEN 3 AND 5");
+    assertEquals( data, actual, "Simple LIKE comparison failed");
+  }  
+
 }
 
 
