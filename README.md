@@ -14,3 +14,6 @@ allArtists = db.select('artists');
 artistWithID1 = db.selectRow('artists',1);
 artistsInCAandNY = db.select( table='artists', where={'state in' = 'CA,NY'} );
 ```
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/ndintenfass/dbsugar/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
