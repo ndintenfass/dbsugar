@@ -316,6 +316,7 @@
     <cfargument name="limit" required="false">
     <cfargument name="count" default="false" required="false">
     <cfargument name="countColumn" default="countValue" required="false">
+    <cfargument name="whereBoolean" default="AND" required="false">
     <cfset var key = "">
     <cfquery name="local.result" datasource="#getDSN()#">
       SELECT  
@@ -329,11 +330,10 @@
       <cfif structKeyExists( arguments, "where" )>
         <cfset var whereClauses = processWhereColumns( arguments.where, arguments.table )>
         <cfset var thisClause = "">
-        WHERE 1=1
+        WHERE 1=#arguments.whereboolean EQ 'OR' ? 0 : 1#
         <cfloop collection="#whereClauses#" item="key">
           <cfset thisClause = whereClauses[key]>
-          <!--- if we ever need logical "OR" perhaps consider making an optional component that acts as an advanced filter with things like addCritera(column,value,operator,boolean) --->
-          AND          
+          #arguments.whereboolean EQ 'OR' ? 'OR' : 'AND'#          
           #thisClause.column# #thisClause.operator# #thisClause.isList ? " (" : ""#
           <cfif NOT thisClause.isJoin>
             <!--- apache derby doesn't like NULL values in CFQUERYPARAM, so we make a special exception --->
@@ -359,6 +359,96 @@
       </cfif>
     </cfquery>
     <cfreturn local.result />
+  </cffunction>
+  
+  <cffunction name="update" access="public" output="false">
+    <cfargument name="table" required="true">
+    <cfargument name="where" required="false" hint="a struct of column names as keys with filter values, use ' in' after the column name for a multi-filter using IN in the SQL">
+    <cfargument name="whereBoolean" default="AND" required="false">
+      <cfscript>
+        var i = 0;
+        local.pkField = getTablePrimaryKey(arguments.table);
+        local.columnData = prepareColumnData(argumentCollection=arguments); 
+        //if we have a manual where clause, that overrides the default where clause based on the primary key column
+        if(structKeyExists(arguments,"where")){
+          local.where = processWhereColumns(arguments.where,arguments.table);
+        }
+        else{
+          if(NOT len(trim(local.pkField)) OR NOT structKeyExists(local.columnData,local.pkField))
+            throw("No primary key column was passed for an UPDATE statement on the table #arguments.table#. To use the abstract UPDATE() you must pass the primary key column value.");
+          local.pkCol = local.columnData[local.pkField];
+          local.where = processWhereColumns({"#local.pkField#"=local.pkCol.value},arguments.table);
+        }
+        structDelete(local.columnData,local.pkField);
+        local.colCount = structCount(local.columnData); 
+        var thisClause = "";
+      </cfscript>      
+      <cfquery datasource = "#getDSN()#">
+        UPDATE #arguments.table#
+        SET     
+          <cfloop collection = "#local.columnData#" item = "local.thiscol">
+          <cfset local.thisColData = local.columnData[local.thiscol]>
+           #local.thiscol# = <cfqueryparam value="#local.thisColData.value#" cfsqltype="#local.thisColData.cfsqltype#" null="#local.thisColData.null#">
+            #++i LT local.colCount ? "," : ""#
+          </cfloop>
+          WHERE 1=#arguments.whereboolean EQ 'OR' ? 0 : 1#
+          <cfloop collection="#local.where#" item="key">
+            <cfset thisClause = local.where[key]>
+            #arguments.whereboolean EQ 'OR' ? 'OR' : 'AND'#               
+            #thisClause.column# #thisClause.operator# #thisClause.isList ? " (" : ""#                                                               
+            <cfif NOT thisClause.isJoin>
+              <!--- apache derby doesn't like NULL values in CFQUERYPARAM, so we make a special exception --->
+              <cfif thisClause.null AND getDBType() EQ "Derby">
+                NULL
+              <cfelse>
+                <cfqueryparam value="#thisClause.value#" null="#thisClause.null#" CFSQLType="#thisClause.CFSQLType#" list="#thisClause.isList#">
+                <cfif structKeyExists(thisClause,"andvalue")>
+                  AND <cfqueryparam value="#thisClause.andvalue#" CFSQLType="#thisClause.CFSQLType#">
+                </cfif>
+              </cfif>
+            <cfelse>
+              #thisClause.value#    
+            </cfif>
+            #thisClause.isList ? ")" : ""#
+          </cfloop>
+      </cfquery>
+      <cfreturn isDefined("local.pkCol") ? local.pkCol.value : "">
+  </cffunction>
+  
+
+  <cffunction name="delete" access="public" output="false" hint="General purpose delete, with a table name and a struct containing the WHERE clause">
+    <cfargument name="table" required="true" hint="Name of the table" />
+    <cfargument name="where" required="false" hint="a struct of column names as keys with filter values, use ' in' after the column name for a multi-filter using IN in the SQL">
+    <cfargument name="whereBoolean" default="AND" required="false">
+    <cfquery datasource="#getDSN()#" result="local.queryResult">
+      DELETE
+      FROM    #arguments.table#
+      <cfif structKeyExists( arguments, "where" )>
+        <cfset var whereClauses = processWhereColumns( arguments.where, arguments.table )>
+        <cfset var thisClause = "">
+        WHERE 1=#arguments.whereboolean EQ 'OR' ? 0 : 1#
+        <cfloop collection="#whereClauses#" item="key">
+          <cfset thisClause = whereClauses[key]>
+          #arguments.whereboolean EQ 'OR' ? 'OR' : 'AND'#           
+          #thisClause.column# #thisClause.operator# #thisClause.isList ? " (" : ""#
+          <cfif NOT thisClause.isJoin>
+            <!--- apache derby doesn't like NULL values in CFQUERYPARAM, so we make a special exception --->
+            <cfif thisClause.null AND getDBType() EQ "Derby">
+              NULL
+            <cfelse>
+              <cfqueryparam value="#thisClause.value#" null="#thisClause.null#" CFSQLType="#thisClause.CFSQLType#" list="#thisClause.isList#">
+              <cfif structKeyExists(thisClause,"andvalue")>
+                AND <cfqueryparam value="#thisClause.andvalue#" CFSQLType="#thisClause.CFSQLType#">
+              </cfif>
+            </cfif>
+          <cfelse>
+            #thisClause.value#    
+          </cfif>
+          #thisClause.isList ? ")" : ""#
+        </cfloop>
+      </cfif>
+    </cfquery>
+    <cfreturn>
   </cffunction>
 
   <cffunction name="insert" access="public" output="false">
@@ -388,97 +478,7 @@
     </cfquery>
     <!--- if there is a primary key field we either return the one being passed in or the generatedKey if it exists or fall back to an empty string --->
     <cfreturn  local.incomingPKValue ? local.columnData[local.pkField].value : (structKeyExists(local.queryResult,"generatedKey") ? local.queryResult.generatedKey : "")>
-  </cffunction>
-  
-  <cffunction name="update" access="public" output="false">
-    <cfargument name="table" required="true">
-    <cfargument name="where" required="false" hint="a struct of column names as keys with filter values, use ' in' after the column name for a multi-filter using IN in the SQL">
-      <cfscript>
-        var i = 0;
-        local.pkField = getTablePrimaryKey(arguments.table);
-        local.columnData = prepareColumnData(argumentCollection=arguments); 
-        //if we have a manual where clause, that overrides the default where clause based on the primary key column
-        if(structKeyExists(arguments,"where")){
-          local.where = processWhereColumns(arguments.where,arguments.table);
-        }
-        else{
-          if(NOT len(trim(local.pkField)) OR NOT structKeyExists(local.columnData,local.pkField))
-            throw("No primary key column was passed for an UPDATE statement on the table #arguments.table#. To use the abstract UPDATE() you must pass the primary key column value.");
-          local.pkCol = local.columnData[local.pkField];
-          local.where = processWhereColumns({"#local.pkField#"=local.pkCol.value},arguments.table);
-        }
-        structDelete(local.columnData,local.pkField);
-        local.colCount = structCount(local.columnData); 
-        var thisClause = "";
-      </cfscript>      
-      <cfquery datasource = "#getDSN()#">
-        UPDATE #arguments.table#
-        SET     
-          <cfloop collection = "#local.columnData#" item = "local.thiscol">
-          <cfset local.thisColData = local.columnData[local.thiscol]>
-           #local.thiscol# = <cfqueryparam value="#local.thisColData.value#" cfsqltype="#local.thisColData.cfsqltype#" null="#local.thisColData.null#">
-            #++i LT local.colCount ? "," : ""#
-          </cfloop>
-          WHERE 1=1
-          <cfloop collection="#local.where#" item="key">
-            <cfset thisClause = local.where[key]>
-            <!--- if we ever need logical "OR" perhaps consider making an optional component that acts as an advanced filter with things like addCritera(column,value,operator,boolean) --->
-            AND           
-            #thisClause.column# #thisClause.operator# #thisClause.isList ? " (" : ""#                                                               
-            <cfif NOT thisClause.isJoin>
-              <!--- apache derby doesn't like NULL values in CFQUERYPARAM, so we make a special exception --->
-              <cfif thisClause.null AND getDBType() EQ "Derby">
-                NULL
-              <cfelse>
-                <cfqueryparam value="#thisClause.value#" null="#thisClause.null#" CFSQLType="#thisClause.CFSQLType#" list="#thisClause.isList#">
-                <cfif structKeyExists(thisClause,"andvalue")>
-                  AND <cfqueryparam value="#thisClause.andvalue#" CFSQLType="#thisClause.CFSQLType#">
-                </cfif>
-              </cfif>
-            <cfelse>
-              #thisClause.value#    
-            </cfif>
-            #thisClause.isList ? ")" : ""#
-          </cfloop>
-      </cfquery>
-      <cfreturn isDefined("local.pkCol") ? local.pkCol.value : "">
-  </cffunction>
-  
-
-  <cffunction name="delete" access="public" output="false" hint="General purpose delete, with a table name and a struct containing the WHERE clause">
-    <cfargument name="table" required="true" hint="Name of the table" />
-    <cfargument name="where" required="false" hint="a struct of column names as keys with filter values, use ' in' after the column name for a multi-filter using IN in the SQL">
-    <cfquery datasource="#getDSN()#" result="local.queryResult">
-      DELETE
-      FROM    #arguments.table#
-      <cfif structKeyExists( arguments, "where" )>
-        <cfset var whereClauses = processWhereColumns( arguments.where, arguments.table )>
-        <cfset var thisClause = "">
-        WHERE 1=1
-        <cfloop collection="#whereClauses#" item="key">
-          <cfset thisClause = whereClauses[key]>
-          <!--- if we ever need logical "OR" perhaps consider making an optional component that acts as an advanced filter with things like addCritera(column,value,operator,boolean) --->
-          AND          
-          #thisClause.column# #thisClause.operator# #thisClause.isList ? " (" : ""#
-          <cfif NOT thisClause.isJoin>
-            <!--- apache derby doesn't like NULL values in CFQUERYPARAM, so we make a special exception --->
-            <cfif thisClause.null AND getDBType() EQ "Derby">
-              NULL
-            <cfelse>
-              <cfqueryparam value="#thisClause.value#" null="#thisClause.null#" CFSQLType="#thisClause.CFSQLType#" list="#thisClause.isList#">
-              <cfif structKeyExists(thisClause,"andvalue")>
-                AND <cfqueryparam value="#thisClause.andvalue#" CFSQLType="#thisClause.CFSQLType#">
-              </cfif>
-            </cfif>
-          <cfelse>
-            #thisClause.value#    
-          </cfif>
-          #thisClause.isList ? ")" : ""#
-        </cfloop>
-      </cfif>
-    </cfquery>
-    <cfreturn>
-  </cffunction>
+  </cffunction>  
 
   <cffunction name="rawsql" access="public" output="false" hint="USE VERY CAUTIOUSLY">
     <cfargument name="sql" required="true">

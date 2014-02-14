@@ -53,12 +53,18 @@ component extends="dbsugarAbstractTest" {
   function testBetween(){
     var data = db.select( table="orders", where={"orderstatusid BETWEEN"="3 AND 5"} );
     var actual = rawQuery("SELECT * FROM orders WHERE orderstatusid BETWEEN 3 AND 5");
-    assertEquals( data, actual, "Simple LIKE comparison failed");
+    assertEquals( data, actual, "Simple BETWEEN comparison failed");
   }
   function testNotBetween(){
     var data = db.select( table="orders", where={"orderstatusid NOT BETWEEN"="3 AND 5"} );
     var actual = rawQuery("SELECT * FROM orders WHERE orderstatusid NOT BETWEEN 3 AND 5");
-    assertEquals( data, actual, "Simple LIKE comparison failed");
+    assertEquals( data, actual, "Simple NOT BETWEEN select failed");
+  }
+
+  function testSimpleOR(){
+    var data = db.select( table="artists", where={state="CA",city="New York"}, whereboolean="OR" );
+    var actual = rawQuery("SELECT * FROM artists WHERE state = 'CA' OR city = 'New York'");
+    assertEquals( data, actual, "Simple OR operator failed");
   }  
 
 }
