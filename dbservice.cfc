@@ -220,6 +220,7 @@
                   float="cf_sql_float",
                   image="cf_sql_longvarbinary",
                   int="cf_sql_integer",
+                  "int unsigned"="cf_sql_bigint",
                   money="cf_sql_money",
                   nchar="cf_sql_char",
                   ntext="cf_sql_longvarchar",

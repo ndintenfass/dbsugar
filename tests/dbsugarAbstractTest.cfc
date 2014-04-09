@@ -3,8 +3,11 @@
 */
 component extends="mxunit.framework.TestCase" output="false" {
   
-  function setUp() {
+  function beforeTests(){
     variables.dsn = "cfartgallery";
+  }
+
+  function setUp() {
     variables.db = new dbsugar.dbservice( variables.dsn );
   }
 
