@@ -176,7 +176,7 @@ Valid values are:
         <directory
           componentPath="tests.mxunit"
           packageName="${test.project}"
-          path="/${test.project}/tests/mxunit/"
+          path="/${test.project}/tests/"
           recurse="false"
           remoteMethod="run"/>
     </mxunittask>
